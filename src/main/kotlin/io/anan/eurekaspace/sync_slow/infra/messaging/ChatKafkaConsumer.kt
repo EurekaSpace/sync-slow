@@ -8,7 +8,7 @@ import org.springframework.stereotype.Component
 
 @Component
 class ChatKafkaConsumer(
-        private val handlerMap: Map<String, ChatWebSocketHandler>
+        private val handlerMap: ChatWebSocketHandler
 ) {
     @KafkaListener(topicPattern = "chat-*", groupId = "chat-group")
     fun listen(record: ConsumerRecord<String, String>, ack: Acknowledgment) {
@@ -18,8 +18,9 @@ class ChatKafkaConsumer(
             val message = record.value()
 
             println("Received Kafka Message: $message for room: $key")
+            println(handlerMap.toString())
 
-            handlerMap[key]?.broadcastMessage(message) ?: println("No handler found for room: $key")
+            handlerMap.broadcastMessage(message)
 
             // 수동 ACK 처리
             ack.acknowledge()
