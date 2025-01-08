@@ -1,0 +1,35 @@
+spring:
+  application:
+    name: sync-slow
+
+  data:
+    mongodb:
+      uri: mongodb://${DB_SERVER}/asyncboostdb
+      authentication-database: admin
+      username: ${DB_SERVER_USERNAME}
+      password: ${DB_SERVER_PASSWORD}
+
+  kafka:
+    consumer:
+      bootstrap-servers: ${KAFKA_SERVER}
+      group-id: chat-group
+      auto-offset-reset: earliest
+      enable-auto-commit: false
+      max-poll-records: 500
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      properties:
+        spring.json.trusted.packages: "*"
+    producer:
+      bootstrap-servers: ${KAFKA_SERVER}
+      acks: all
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      retries: 3
+      batch-size: 0 # ?? ??
+    listener:
+      ack-mode: manual
+      concurrency: 3 # ?? ?? ??
+
+server:
+  port: 8081
