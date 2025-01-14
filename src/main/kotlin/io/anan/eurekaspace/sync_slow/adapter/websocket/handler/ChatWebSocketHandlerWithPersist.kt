@@ -12,7 +12,7 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.util.concurrent.CopyOnWriteArrayList
 
 @Component
-class ChatWebSocketHandler(
+class ChatWebSocketHandlerWithPersist(
         private val sendChatMessageUseCase: SendChatMessageUseCase,
         private val objectMapper: ObjectMapper
 ) : TextWebSocketHandler() {
@@ -29,14 +29,17 @@ class ChatWebSocketHandler(
         println("Received message: ${message.payload}")
         val roomId = session.uri?.path?.split("/")?.last() ?: throw IllegalArgumentException("Invalid URI")
 
-        val chatMessage = ChatMessage(
-                roomId = roomId,
-                senderId = "user_001",
-                content = message.payload
+        // 메시지 전송
+        val savedChatMessage = sendChatMessageUseCase.executeWithoudKafka(
+                ChatMessage(
+                        roomId = roomId,
+                        senderId = "user_001",
+                        content = message.payload
+                )
         )
 
         broadcastMessage(
-                objectMapper.writeValueAsString(chatMessage)
+                objectMapper.writeValueAsString(savedChatMessage)
         )
     }
 

@@ -1,6 +1,5 @@
 package io.anan.eurekaspace.sync_slow.adapter.websocket.handler
 
-import com.fasterxml.jackson.databind.ObjectMapper
 import io.anan.eurekaspace.sync_slow.application.usecase.SendChatMessageUseCase
 import io.anan.eurekaspace.sync_slow.domain.model.ChatMessage
 import org.springframework.kafka.core.KafkaTemplate
@@ -12,9 +11,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler
 import java.util.concurrent.CopyOnWriteArrayList
 
 @Component
-class ChatWebSocketHandler(
+class ChatWebSocketHandlerWithPersistAndKafka(
         private val sendChatMessageUseCase: SendChatMessageUseCase,
-        private val objectMapper: ObjectMapper
 ) : TextWebSocketHandler() {
 
     // 연결된 세션 관리
@@ -29,14 +27,13 @@ class ChatWebSocketHandler(
         println("Received message: ${message.payload}")
         val roomId = session.uri?.path?.split("/")?.last() ?: throw IllegalArgumentException("Invalid URI")
 
-        val chatMessage = ChatMessage(
-                roomId = roomId,
-                senderId = "user_001",
-                content = message.payload
-        )
-
-        broadcastMessage(
-                objectMapper.writeValueAsString(chatMessage)
+        // 메시지 전송
+        sendChatMessageUseCase.execute(
+                ChatMessage(
+                        roomId = roomId,
+                        senderId = "user_001",
+                        content = message.payload
+                )
         )
     }
 
