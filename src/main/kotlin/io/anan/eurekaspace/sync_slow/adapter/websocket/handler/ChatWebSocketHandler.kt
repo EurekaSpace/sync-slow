@@ -1,21 +1,22 @@
 package io.anan.eurekaspace.sync_slow.adapter.websocket.handler
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import io.anan.eurekaspace.sync_slow.application.usecase.SendChatMessageUseCase
+import com.sun.management.OperatingSystemMXBean
 import io.anan.eurekaspace.sync_slow.domain.model.ChatMessage
-import org.springframework.kafka.core.KafkaTemplate
+import org.slf4j.LoggerFactory
 import org.springframework.stereotype.Component
 import org.springframework.web.socket.CloseStatus
 import org.springframework.web.socket.TextMessage
 import org.springframework.web.socket.WebSocketSession
 import org.springframework.web.socket.handler.TextWebSocketHandler
+import java.lang.management.ManagementFactory
 import java.util.concurrent.CopyOnWriteArrayList
 
 @Component
 class ChatWebSocketHandler(
-        private val sendChatMessageUseCase: SendChatMessageUseCase,
         private val objectMapper: ObjectMapper
 ) : TextWebSocketHandler() {
+    val log = LoggerFactory.getLogger(this::class.java)
 
     // 연결된 세션 관리
     private val sessions = CopyOnWriteArrayList<WebSocketSession>()
@@ -40,17 +41,21 @@ class ChatWebSocketHandler(
         )
     }
 
-    // Kafka에서 받은 메시지 브로드캐스트
     fun broadcastMessage(message: String) {
         for (session in sessions) {
             if (session.isOpen) {
-                session.sendMessage(TextMessage(message))
+                synchronized(session) {
+                    try {
+                        session.sendMessage(TextMessage(message))
+                    } catch (e: Exception) {
+                        log.error("send message failed by exception >>>> ${e.message}")
+                    }
+                }
             }
         }
     }
 
     override fun afterConnectionClosed(session: WebSocketSession, status: CloseStatus) {
         sessions.remove(session)
-        println("Session disconnected: ${session.id}")
     }
 }
